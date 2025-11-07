@@ -21,6 +21,7 @@ class Node{
         int totalDistance();
         void print();
         bool isGoal();
+        bool isSolvable();
 };
 
 Node::Node(const int& size, const int& positionMissingPiece, Node* parent){
@@ -109,6 +110,22 @@ Node** Node::neighbours(){
         countNeighbours++;
     }
     return neighbours;
+}
+
+bool Node::isSolvable(){
+    int inversions = 0;
+    for(int row = 0; row < this->size; row++){
+        for(int col = 0; col < this->size; col++){
+            for(int next = col + 1; next < this->size; next++ ){
+                inversions += (this->matrix[row][col] > this->matrix[row][next]);
+            }
+        }
+    }
+    return inversions % 2 == 0;
+    /*return (this->size%2 == 1 && inversions % 2 == 0) || 
+        (this->size%2 == 0 && this->positionMissingPiece%2==(inversions+this->positionMissingPiece)%2);
+        The given algorithm checks if a puzzle is solvable only for bottom right. For all final possitions the puzzle is solvable only when the inversions are even.
+        */
 }
 
 int main(){
