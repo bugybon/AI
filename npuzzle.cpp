@@ -8,11 +8,15 @@ class Node{
         //int distance = 0;
         Node* parent;
         int size;
+        int** matrix;
+        int currentMissingPiece = 0;
         
     public:
-        int** matrix;
-        Node(const int& size = 0, const int& positionMissingPiece = 1, Node* parent = nullptr);
+        Node(const int& size = 1, const int& positionMissingPiece = 1, Node* parent = nullptr);
+        Node(Node* other);
 
+        void inputMatrix();
+        Node** neighbours();
         int distance(int col, int row);
         int totalDistance();
         void print();
@@ -20,13 +24,28 @@ class Node{
 };
 
 Node::Node(const int& size, const int& positionMissingPiece, Node* parent){
+    this->size = size;
     matrix = new int*[size];
     for(int i = 0; i < size; i++){
         matrix[i] = new int[size];
     }
-    this->size = size;
     this->positionMissingPiece = (positionMissingPiece == -1) ? 9 : positionMissingPiece;
     this->parent = parent;
+}
+
+Node::Node(Node* other){
+    this->size = other->size;
+    matrix = new int*[other->size];
+
+    for(int i = 0; i < this->size; i++){
+
+        matrix[i] = new int[this->size];
+        for(int col = 0; col < this->size; col++)
+            matrix[i][col] = other->matrix[i][col];
+    }
+
+    this->positionMissingPiece = other->positionMissingPiece;
+    this->parent = other->parent;
 }
 
 int Node::distance(int col, int row){
@@ -61,12 +80,47 @@ bool Node::isGoal(){
     return this->totalDistance() == 0;
 }
 
+void Node::inputMatrix(){
+    for(int row = 0; row < this->size; row++){
+        for(int col = 0; col < this->size; col++){
+            std::cin >> this->matrix[row][col];
+            if(this->matrix[row][col] == 0) currentMissingPiece = row*this->size + col;
+        }
+    }
+}
+
+Node** Node::neighbours(){
+    Node** neighbours = new Node*[5]();
+    int countNeighbours = 0;
+
+    int positions[] = {-this->size, -1, 1, this->size};
+    int move;
+    int** currentMatrix;
+    for(int i = 0; i < 4; i++){
+        move = currentMissingPiece + positions[i];
+        if(move <= 0 || move >= this->size * this->size ||
+            (move%this->size != currentMissingPiece%this->size && move/this->size != currentMissingPiece/this->size)) continue;
+
+        neighbours[countNeighbours] = new Node(this);
+        neighbours[countNeighbours]->parent = this;
+
+        std::swap(neighbours[countNeighbours]->matrix[move/this->size][move%this->size], neighbours[countNeighbours]->matrix[currentMissingPiece/this->size][currentMissingPiece%this->size]);
+        
+        countNeighbours++;
+    }
+    return neighbours;
+}
+
 int main(){
     Node test(3, -1);
-    for(int i = 0; i < 9; i++)
-        test.matrix[i/3][i%3] = (i+1)%9;
+    test.inputMatrix();
 
     test.print();
+    Node** children = test.neighbours();
+    for(int i = 0; children[i] != nullptr; i++){
+        std::cout << "=======" << std::endl;
+        children[i]->print();
+    }
     std::cout << test.totalDistance() << std::endl;
     return 0;
 }
