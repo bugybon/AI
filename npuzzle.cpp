@@ -15,6 +15,8 @@ class Node{
         Node(const int& size = 1, const int& positionMissingPiece = 1, Node* parent = nullptr);
         Node(Node* other);
 
+        Node* getParent(){return this->parent;};
+        void setParent(Node* other){this->parent = other;};
         void inputMatrix();
         Node** neighbours();
         int distance(int col, int row);
@@ -104,7 +106,7 @@ Node** Node::neighbours(){
 
         neighbours[countNeighbours] = new Node(this);
         neighbours[countNeighbours]->parent = this;
-
+        neighbours[countNeighbours]->currentMissingPiece = move;
         std::swap(neighbours[countNeighbours]->matrix[move/this->size][move%this->size], neighbours[countNeighbours]->matrix[currentMissingPiece/this->size][currentMissingPiece%this->size]);
         
         countNeighbours++;
@@ -116,7 +118,11 @@ bool Node::isSolvable(){
     int inversions = 0;
     for(int row = 0; row < this->size; row++){
         for(int col = 0; col < this->size; col++){
+            if(this->matrix[row][col] == 0)continue;
+
             for(int next = col + 1; next < this->size; next++ ){
+                if(this->matrix[row][next] == 0)continue;
+
                 inversions += (this->matrix[row][col] > this->matrix[row][next]);
             }
         }
@@ -128,16 +134,75 @@ bool Node::isSolvable(){
         */
 }
 
+bool isInPath(Node* previous, Node* target){
+    while(previous != nullptr){
+        if(target == previous) return true;
+        previous = previous->getParent();
+    }
+    return false;
+}
+
+int search(Node* currentNode, const int& currentCost, const int& bound){
+    int f = currentCost + currentNode->totalDistance();
+    if(f > bound) return f;
+    if(currentNode->isGoal()) return -1;
+    int min = INT16_MAX;
+    int res;
+
+    Node** neighbour = currentNode->neighbours();
+    for(int i = 0; neighbour[i] != nullptr; i++){
+        for(int j = i+1; neighbour[j] != nullptr; j++){
+            if(neighbour[j-1]->totalDistance() < neighbour[j]->totalDistance())
+                std::swap(neighbour[j],neighbour[j-1]);
+        }
+    }
+    Node* previous = currentNode;
+    for(int i = 0; neighbour[i] != nullptr; i++){
+        if(isInPath(previous, neighbour[i])) continue;
+
+        neighbour[i]->setParent(currentNode);
+        res = search(neighbour[i], currentCost+1, bound);
+
+        if(res == -1){
+            currentNode->print();
+            std::cout << "====" << std::endl;
+            return -1;
+        }else if(res < min) min = res;
+
+        delete neighbour[i];
+    }
+    return min;
+}
+
+void ida_star(Node* root){
+    int bound = root->totalDistance(), res;
+    while(true){
+        res = search(root, 0, bound);
+        if(res == -1){
+            std::cout << bound;
+            // ...
+            return;
+        }else if(res == -2){
+            std::cout << -1;
+            return;
+        }
+        bound = res;
+    }
+}
+
 int main(){
     Node test(3, -1);
     test.inputMatrix();
 
-    test.print();
-    Node** children = test.neighbours();
-    for(int i = 0; children[i] != nullptr; i++){
-        std::cout << "=======" << std::endl;
-        children[i]->print();
+    //test.print();
+    // Node** children = test.neighbours();
+    // for(int i = 0; children[i] != nullptr; i++){
+    //     std::cout << "=======" << std::endl;
+    //     children[i]->print();
+    // }
+    std::cout << std::boolalpha << test.isSolvable() << std::endl;
+    if(test.isSolvable()){
+        ida_star(&test);
     }
-    std::cout << test.totalDistance() << std::endl;
     return 0;
 }
