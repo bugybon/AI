@@ -24,6 +24,7 @@ class Node{
         void print();
         bool isGoal();
         bool isSolvable();
+        bool isEqual(Node* other);
 };
 
 Node::Node(const int& size, const int& positionMissingPiece, Node* parent){
@@ -134,18 +135,38 @@ bool Node::isSolvable(){
         */
 }
 
+bool Node::isEqual(Node* other){
+    if(this->size != other->size) return false;
+    for(int i = 0; i < this->size*this->size; i++){
+        if(this->matrix[i/this->size][i%this->size] != other->matrix[i/this->size][i%this->size])return false;
+    }
+    return true;
+}
+
 bool isInPath(Node* previous, Node* target){
     while(previous != nullptr){
-        if(target == previous) return true;
+        if(target->isEqual(previous)) return true;
         previous = previous->getParent();
     }
     return false;
 }
 
+void printPath(Node* node){
+    if(node == nullptr) return;
+
+    printPath(node->getParent());
+    std::cout << "=====" << std::endl;
+    node->print();
+}
+
 int search(Node* currentNode, const int& currentCost, const int& bound){
     int f = currentCost + currentNode->totalDistance();
     if(f > bound) return f;
-    if(currentNode->isGoal()) return -1;
+    if(currentNode->isGoal()){
+        std::cout << bound << std::endl;
+        printPath(currentNode);
+        return -1;
+    }
     int min = INT16_MAX;
     int res;
 
@@ -156,31 +177,36 @@ int search(Node* currentNode, const int& currentCost, const int& bound){
                 std::swap(neighbour[j],neighbour[j-1]);
         }
     }
-    Node* previous = currentNode;
-    for(int i = 0; neighbour[i] != nullptr; i++){
-        if(isInPath(previous, neighbour[i])) continue;
 
-        neighbour[i]->setParent(currentNode);
+    Node* previous = new Node(currentNode);
+    for(int i = 0; neighbour[i] != nullptr; i++){
+        if(isInPath(previous, neighbour[i])){
+            delete neighbour[i];    
+            neighbour[i] = nullptr;
+            continue;
+        }
+
+        //neighbour[i]->setParent(currentNode);
         res = search(neighbour[i], currentCost+1, bound);
 
         if(res == -1){
-            currentNode->print();
-            std::cout << "====" << std::endl;
             return -1;
-        }else if(res < min) min = res;
+        }else if(res < min) 
+            min = res;
 
         delete neighbour[i];
+        neighbour[i] = nullptr;
     }
+    delete neighbour;
     return min;
 }
 
 void ida_star(Node* root){
     int bound = root->totalDistance(), res;
     while(true){
+        std::cout << bound << std::endl;
         res = search(root, 0, bound);
-        if(res == -1){
-            std::cout << bound;
-            // ...
+        if(res == -1){            
             return;
         }else if(res == -2){
             std::cout << -1;
