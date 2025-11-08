@@ -1,7 +1,6 @@
 #include <iostream>
 #include <cmath>
 
-int const MAX_DIMENSION = 10;
 
 class Node{
     private:
@@ -209,6 +208,7 @@ void ida_star(Node* root){
     int bound = root->totalDistance(), res;
     while(true){
         res = search(root, 0, bound);
+        std::cout << bound << std::endl;
         if(res == -1){            
             return;
         }else if(res == -2){
