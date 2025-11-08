@@ -7,6 +7,7 @@ class Node{
         int positionMissingPiece;
         //int distance = 0;
         Node* parent;
+        std::string direction;
         int size;
         int** matrix;
         int currentMissingPiece = 0;
@@ -35,6 +36,7 @@ Node::Node(const int& size, const int& positionMissingPiece, Node* parent){
     }
     this->positionMissingPiece = (positionMissingPiece == -1) ? 9 : positionMissingPiece;
     this->parent = parent;
+    this->direction = '\0';
 }
 
 Node::Node(Node* other){
@@ -50,6 +52,7 @@ Node::Node(Node* other){
 
     this->positionMissingPiece = other->positionMissingPiece;
     this->parent = other->parent;
+    this->direction = other->direction;
 }
 
 int Node::distance(int col, int row){
@@ -98,34 +101,35 @@ Node** Node::neighbours(){
     int countNeighbours = 0;
 
     int positions[] = {-this->size, -1, 1, this->size};
+    std::string directions[] = {"down", "right", "left", "up"};
     int move;
     int** currentMatrix;
     for(int i = 0; i < 4; i++){
         move = currentMissingPiece + positions[i];
-        if(move <= 0 || move >= this->size * this->size ||
-            (move%this->size != currentMissingPiece%this->size && move/this->size != currentMissingPiece/this->size)) continue;
+        if(move < 0 || move >= this->size * this->size ||
+            ((move%this->size) != (currentMissingPiece%this->size) && (move/this->size) != (currentMissingPiece/this->size))) continue;
 
         neighbours[countNeighbours] = new Node(this);
         neighbours[countNeighbours]->parent = this;
         neighbours[countNeighbours]->currentMissingPiece = move;
+        neighbours[countNeighbours]->direction = directions[i];
         std::swap(neighbours[countNeighbours]->matrix[move/this->size][move%this->size], neighbours[countNeighbours]->matrix[currentMissingPiece/this->size][currentMissingPiece%this->size]);
         
         countNeighbours++;
     }
+    std::cout << countNeighbours << std::endl;
     return neighbours;
 }
 
 bool Node::isSolvable(){
     int inversions = 0;
-    for(int row = 0; row < this->size; row++){
-        for(int col = 0; col < this->size; col++){
-            if(this->matrix[row][col] == 0)continue;
+    for(int i = 0; i < this->size*this->size; i++){
+        if(this->matrix[i/this->size][i%this->size] == 0)continue;
 
-            for(int next = col + 1; next < this->size; next++ ){
-                if(this->matrix[row][next] == 0)continue;
+        for(int next = i + 1; next < this->size*this->size; next++ ){
+            if(this->matrix[next/this->size][next%this->size] == 0)continue;
 
-                inversions += (this->matrix[row][col] > this->matrix[row][next]);
-            }
+            inversions += (this->matrix[i/this->size][i%this->size] > this->matrix[next/this->size][next%this->size]);
         }
     }
     return inversions % 2 == 0;
@@ -226,9 +230,10 @@ int main(){
     //     std::cout << "=======" << std::endl;
     //     children[i]->print();
     // }
-    std::cout << std::boolalpha << test.isSolvable() << std::endl;
     if(test.isSolvable()){
         ida_star(&test);
+    }else{
+        std::cout << "isSolvable " << -1 << std::endl;
     }
     return 0;
 }
