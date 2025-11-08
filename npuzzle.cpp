@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 
 int const MAX_DIMENSION = 10;
 
@@ -26,6 +27,7 @@ class Node{
         bool isGoal();
         bool isSolvable();
         bool isEqual(Node* other);
+        void printPath();
 };
 
 Node::Node(const int& size, const int& positionMissingPiece, Node* parent){
@@ -34,9 +36,9 @@ Node::Node(const int& size, const int& positionMissingPiece, Node* parent){
     for(int i = 0; i < size; i++){
         matrix[i] = new int[size];
     }
-    this->positionMissingPiece = (positionMissingPiece == -1) ? 9 : positionMissingPiece;
+    this->positionMissingPiece = (positionMissingPiece == -1) ? size*size : (positionMissingPiece + 1); // position counting starts from 0 which leads this small adjustments
     this->parent = parent;
-    this->direction = '\0';
+    this->direction = "\0";
 }
 
 Node::Node(Node* other){
@@ -61,7 +63,7 @@ int Node::distance(int col, int row){
     
     if(current < positionMissingPiece) current -= 1;
 
-    return std::abs(col-current%3) + std::abs(row-current/3);
+    return std::abs(col-current%this->size) + std::abs(row-current/this->size);
 }
 
 int Node::totalDistance(){
@@ -117,7 +119,6 @@ Node** Node::neighbours(){
         
         countNeighbours++;
     }
-    std::cout << countNeighbours << std::endl;
     return neighbours;
 }
 
@@ -155,12 +156,11 @@ bool isInPath(Node* previous, Node* target){
     return false;
 }
 
-void printPath(Node* node){
-    if(node == nullptr) return;
+void Node::printPath(){
+    if(this->direction == "\0") return;
 
-    printPath(node->getParent());
-    std::cout << "=====" << std::endl;
-    node->print();
+    parent->printPath();
+    std::cout << this->direction << std::endl;
 }
 
 int search(Node* currentNode, const int& currentCost, const int& bound){
@@ -168,7 +168,7 @@ int search(Node* currentNode, const int& currentCost, const int& bound){
     if(f > bound) return f;
     if(currentNode->isGoal()){
         std::cout << bound << std::endl;
-        printPath(currentNode);
+        currentNode->printPath();
         return -1;
     }
     int min = INT16_MAX;
@@ -208,7 +208,6 @@ int search(Node* currentNode, const int& currentCost, const int& bound){
 void ida_star(Node* root){
     int bound = root->totalDistance(), res;
     while(true){
-        std::cout << bound << std::endl;
         res = search(root, 0, bound);
         if(res == -1){            
             return;
@@ -221,19 +220,15 @@ void ida_star(Node* root){
 }
 
 int main(){
-    Node test(3, -1);
-    test.inputMatrix();
+    int size, location;
+    std::cin >> size >> location;
+    Node node(std::sqrt(size+1), location); // working with size of a row
+    node.inputMatrix();
 
-    //test.print();
-    // Node** children = test.neighbours();
-    // for(int i = 0; children[i] != nullptr; i++){
-    //     std::cout << "=======" << std::endl;
-    //     children[i]->print();
-    // }
-    if(test.isSolvable()){
-        ida_star(&test);
+    if(node.isSolvable()){
+        ida_star(&node);
     }else{
-        std::cout << "isSolvable " << -1 << std::endl;
+        std::cout << -1 << std::endl;
     }
     return 0;
 }
