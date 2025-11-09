@@ -2,6 +2,7 @@
 #include <cmath>
 
 #define MATRIX_SIZE 4
+std::string directions[] = {"down", "right", "left", "up"};
 
 class Node{
     private:
@@ -21,7 +22,7 @@ class Node{
         void setParent(Node* other){this->parent = other;};
         void inputMatrix();
         Node** neighbours();
-        int distance(int col, int row);
+        int distance(const int& col,const int& row);
         int totalDistance();
         void print();
         bool isGoal();
@@ -50,7 +51,7 @@ Node::Node(Node* other){
     this->direction = other->direction;
 }
 
-int Node::distance(int col, int row){
+int Node::distance(const int& col,const int& row){
     int current = matrix[row][col];
     if(current == 0) return 0;
     
@@ -96,7 +97,6 @@ Node** Node::neighbours(){
     int countNeighbours = 0;
 
     int positions[] = {-this->size, -1, 1, this->size};
-    std::string directions[] = {"down", "right", "left", "up"};
     int move;
     int** currentMatrix;
     for(int i = 0; i < 4; i++){
@@ -202,7 +202,7 @@ void ida_star(Node* root){
     int bound = root->totalDistance(), res;
     while(true){
         res = search(root, 0, bound);
-        std::cout << bound << std::endl;
+        //std::cout << bound << std::endl;
         if(res == -1){            
             return;
         }else if(res == -2){
