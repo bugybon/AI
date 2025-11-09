@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 
+#define MATRIX_SIZE 4
 
 class Node{
     private:
@@ -9,7 +10,7 @@ class Node{
         Node* parent;
         std::string direction;
         int size;
-        int** matrix;
+        int matrix[MATRIX_SIZE][MATRIX_SIZE];
         int currentMissingPiece = 0;
         
     public:
@@ -31,10 +32,6 @@ class Node{
 
 Node::Node(const int& size, const int& positionMissingPiece, Node* parent){
     this->size = size;
-    matrix = new int*[size];
-    for(int i = 0; i < size; i++){
-        matrix[i] = new int[size];
-    }
     this->positionMissingPiece = (positionMissingPiece == -1) ? size*size : (positionMissingPiece + 1); // position counting starts from 0 which leads this small adjustments
     this->parent = parent;
     this->direction = "\0";
@@ -42,11 +39,8 @@ Node::Node(const int& size, const int& positionMissingPiece, Node* parent){
 
 Node::Node(Node* other){
     this->size = other->size;
-    matrix = new int*[other->size];
 
     for(int i = 0; i < this->size; i++){
-
-        matrix[i] = new int[this->size];
         for(int col = 0; col < this->size; col++)
             matrix[i][col] = other->matrix[i][col];
     }
