@@ -3,6 +3,8 @@
 #define ARRAY_SIZE 10020
 #define CONST 3
 
+bool printable = true;
+
 int nQueens[ARRAY_SIZE], queensPerRow[ARRAY_SIZE], queensPerDiag1[ARRAY_SIZE], queensPerDiag2[ARRAY_SIZE];
 
 int getColWithQeueenWithMaxConf(){
@@ -37,12 +39,17 @@ void solve(const int& n){
 }
 
 void print(const int& n){
-    
+    for(int row = 0; row < n; row++){
+        for(int col = 0; col < n; col++){
+            std::cout << (nQueens[col] == row) ? '*' : '_';
+        }
+        std::cout << std::endl;
+    }
 }
 
 int main(){
     int n;
     std::cin >> n;
     solve(n);
-    print(n);
+    if(printable)print(n);
 }
