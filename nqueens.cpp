@@ -11,14 +11,46 @@ enum Increment {
 
 bool printable = true;
 
-int nQueens[ARRAY_SIZE], queensPerRow[ARRAY_SIZE], queensPerDiag1[2 * ARRAY_SIZE - 1], queensPerDiag2[2 * ARRAY_SIZE - 1];
+int nQueens[ARRAY_SIZE], queensPerRow[ARRAY_SIZE], queensPerDiag1[2 * ARRAY_SIZE - 1], queensPerDiag2[2 * ARRAY_SIZE - 1], candidates[ARRAY_SIZE];
 
-int getColWithQeueenWithMaxConf(){
-
+int sumConflicts(const int& n, const int& col, const int& row) {
+    return queensPerRow[row] + queensPerDiag1[n - 1 + col - row] + queensPerDiag2[col + row];
 }
 
-int getRowWithMinConflict(const int& col){
+int getColWithQeueenWithMaxConf(const int& n){
+    candidates[0] = 0;
+    int maxConflicts = sumConflicts(n, candidates[0], nQueens[0]), countCandidates = 1;
+    for (int i = 1; i < n; i++) {
+        if (maxConflicts > sumConflicts(n, i, nQueens[i])) {
+            maxConflicts = sumConflicts(n, i, nQueens[i]);
+            candidates[0] = i;
+            countCandidates = 1;
+        }
+        else if (maxConflicts == sumConflicts(n, i, nQueens[i])) {
+            candidates[countCandidates] = i;
+            countCandidates++;
+        }
 
+    }
+    return candidates[rand() % countCandidates];
+}
+
+int getRowWithMinConflict(const int& n,const int& col){
+    candidates[0] = 0;
+    int minConflicts = sumConflicts(n, col, candidates[0]), countCandidates = 1;
+    for (int i = 1; i < n; i++) {
+        if (minConflicts < sumConflicts(n, col, i)) {
+            minConflicts = sumConflicts(n, col, i);
+            candidates[0] = i;
+            countCandidates = 1;
+        }
+        else if (minConflicts == sumConflicts(n,col, i)) {
+            candidates[countCandidates] = i;
+            countCandidates++;
+        }
+
+    }
+    return candidates[rand() % countCandidates];
 }
 
 void updateConflicts(const int& n,const int& col, const int& row, const Increment& incr) {
@@ -51,8 +83,8 @@ void solve(const int& n){
     int col, row;
 
     for(int iter = 0; iter <= CONST*n; iter++){
-        col = getColWithQeueenWithMaxConf();
-        row = getRowWithMinConflict(col);
+        col = getColWithQeueenWithMaxConf(n);
+        row = getRowWithMinConflict(n, col);
         updateConflicts(n, col, nQueens[col], Minus);
         nQueens[col]=row;
         updateConflicts(n, col, row, Plus);
