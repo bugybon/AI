@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
+//#include <chrono>
 
 #define ARRAY_SIZE 10020
 #define CONST 3
@@ -129,7 +130,10 @@ int main(){
     srand(time(0));
     int n;
     std::cin >> n;
+    //std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     solve(n);
+    //std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    //std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " [ms]" << std::endl;
     if(printable)printBoard(n);
     printSimple(n);
 }
