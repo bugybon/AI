@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdlib>
+#include <ctime>
 
 #define ARRAY_SIZE 10020
 #define CONST 3
@@ -9,7 +10,7 @@ enum Increment {
     Minus = -1
 };
 
-bool printable = true;
+bool printable = false;
 
 int nQueens[ARRAY_SIZE], queensPerRow[ARRAY_SIZE], queensPerDiag1[2 * ARRAY_SIZE - 1], queensPerDiag2[2 * ARRAY_SIZE - 1], candidates[ARRAY_SIZE];
 
@@ -21,7 +22,7 @@ int getColWithQeueenWithMaxConf(const int& n){
     candidates[0] = 0;
     int maxConflicts = sumConflicts(n, candidates[0], nQueens[0]), countCandidates = 1;
     for (int i = 1; i < n; i++) {
-        if (maxConflicts > sumConflicts(n, i, nQueens[i])) {
+        if (maxConflicts < sumConflicts(n, i, nQueens[i])) {
             maxConflicts = sumConflicts(n, i, nQueens[i]);
             candidates[0] = i;
             countCandidates = 1;
@@ -39,7 +40,7 @@ int getRowWithMinConflict(const int& n,const int& col){
     candidates[0] = 0;
     int minConflicts = sumConflicts(n, col, candidates[0]), countCandidates = 1;
     for (int i = 1; i < n; i++) {
-        if (minConflicts < sumConflicts(n, col, i)) {
+        if (minConflicts > sumConflicts(n, col, i)) {
             minConflicts = sumConflicts(n, col, i);
             candidates[0] = i;
             countCandidates = 1;
@@ -59,7 +60,21 @@ void updateConflicts(const int& n,const int& col, const int& row, const Incremen
     queensPerDiag2[col + row] += incr;
 }
 
+void neutralize(const int& n) {
+    for (int i = 0; i < n; i++) {
+        queensPerRow[i] = 0;
+        queensPerDiag1[i] = 0;
+        queensPerDiag2[i] = 0;
+    }
+
+    for (int i = n; i < 2 * n - 1; i++) {
+        queensPerDiag1[i] = 0;
+        queensPerDiag2[i] = 0;
+    }
+}
+
 void initRandom(const int& n){
+    neutralize(n);
     for (int i = 0; i < n; i++) {
         nQueens[i] = rand() % n;
         updateConflicts(n, i, nQueens[i], Plus);
@@ -82,7 +97,7 @@ void solve(const int& n){
     initRandom(n);
     int col, row;
 
-    for(int iter = 0; iter <= CONST*n; iter++){
+    for(int iter = 0; iter <= CONST*n && hasConflicts(n); iter++){
         col = getColWithQeueenWithMaxConf(n);
         row = getRowWithMinConflict(n, col);
         updateConflicts(n, col, nQueens[col], Minus);
@@ -111,6 +126,7 @@ void printSimple(const int& n) {
 }
 
 int main(){
+    srand(time(0));
     int n;
     std::cin >> n;
     solve(n);
