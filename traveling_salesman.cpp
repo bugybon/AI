@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-#define ITER_COUNT 10
+#define ITER_COUNT 10000
 #define POOL_SIZE 20
 #define MAX_CITY_COUNT 100
 #define TOTAL_CHANCE 6
@@ -14,18 +14,30 @@ struct City {
 };
 
 City cities[MAX_CITY_COUNT];
-short generation[POOL_SIZE][MAX_CITY_COUNT], parents[POOL_SIZE][MAX_CITY_COUNT];
+short generation[POOL_SIZE][MAX_CITY_COUNT], parents[POOL_SIZE][MAX_CITY_COUNT], solution[MAX_CITY_COUNT];
 bool used[POOL_SIZE];
 float distance[POOL_SIZE];
 int fitness[POOL_SIZE];
 
 float distanceBetween(const int& first_index, const int& second_index) {
-	return std::abs((cities[first_index].x - cities[second_index].x) * (cities[first_index].y - cities[second_index].y));
+	return std::sqrt((cities[first_index].x - cities[second_index].x)* (cities[first_index].x - cities[second_index].x)+
+		(cities[first_index].y - cities[second_index].y)*(cities[first_index].y - cities[second_index].y));
 };
 
 void promoteToParent(const int& parent, const int& chosen) {
 	for (short i = 0; i < size; i++)
 		parents[parent][i] = generation[chosen][i];
+}
+
+void findWanted(const int& value) {
+	for (int pool = 0; pool < POOL_SIZE; pool++) {
+		if (value != distance[pool]) continue;
+
+		for (int i = 0; i < size; i++) {
+			solution[i] = generation[pool][i];
+		}
+		return;
+	}
 }
 
 void crossover(const int& adopter, const int& giver, const short& start, const short& end) {
@@ -37,12 +49,12 @@ void crossover(const int& adopter, const int& giver, const short& start, const s
 		generation[adopter][i] = parents[adopter][i];
 	}
 
-	int adopted = 1;
-	for (int i = 1; i <= size && adopted <= size - (end - start); i++) {
-		if (used[parents[giver][start + i]]) continue;
+	int adopted = 0;
+	for (int i = 0; i < size && adopted < size - (end - start); i++) {
+		if (used[parents[giver][(end + i) % size]]) continue;
 
-		generation[adopter][(start + adopted) % size] = parents[giver][start + i];
-		used[parents[giver][start + i]] = true;
+		generation[adopter][(end + adopted) % size] = parents[giver][(end + i) % size];
+		used[parents[giver][(end + i) % size]] = true;
 		adopted++;
 	}
 }
@@ -58,7 +70,7 @@ void init() {
 		for (short i = 0; i < size; i++) {
 			current = rand() % (size - i);
 			generation[pool][i] = sequence[current];
-			std::swap(sequence[current], sequence[i]);
+			std::swap(sequence[current], sequence[size - i - 1]);
 		}
 	}
 };
@@ -76,8 +88,15 @@ int eval() {
 	for(short pool = 1;pool < POOL_SIZE; pool++)
 		max = std::max(distance[pool] + 1, max);
 
-	for (short pool = 0; pool < POOL_SIZE; pool++) 
+	fitness[0] = std::ceil(max - distance[0]);
+	int res = distance[0];
+	for (short pool = 1; pool < POOL_SIZE; pool++) {
 		fitness[pool] = std::ceil(max - distance[pool]);
+		if (max - res < fitness[pool]) {
+			res = distance[pool];
+		}
+	}
+	return res;
 };
 
 void selectParents() {
@@ -105,7 +124,7 @@ void reproduction() {
 	short start, end;
 	for (int i = 0; i < POOL_SIZE / 2; i++) {
 		start = rand() % size;
-		end = start + 1 + rand() % (size - start - 1);
+		end = (start + 1) == size ? (start + 1) : (start + 1 + rand() % (size - start - 1));
 		crossover(i, i + 1, start, end);
 		crossover(i + 1, i, start, end);
 	}
@@ -126,9 +145,10 @@ void mutate() {
 
 
 int geneticAlgorithm(){
-	int count = 0;
+	int count = 0, temp;
 	init();
 	int min_distance = eval();
+	findWanted(min_distance);
 
 	for (int i = 0; i < ITER_COUNT; i++) {
 		selectParents();
@@ -136,8 +156,13 @@ int geneticAlgorithm(){
 		
 		count++;
 		mutate();
-		min_distance = std::min(min_distance,eval());
-		std::cout << min_distance;
+		temp = eval();
+		if(min_distance > temp){
+			min_distance = temp;
+			findWanted(min_distance);
+		}
+		//min_distance = std::min(min_distance,eval());
+		std::cout << min_distance << std::endl;
 	}
 
 	return min_distance;
@@ -154,12 +179,12 @@ bool hasLetter( std::string& string) {
 }
 
 void printCities(const float &wanted_value) {
-	int i = 0;
-	for (; distance[i] != wanted_value; i++);
+	//int i = 0;
+	//for (; distance[i] != wanted_value; i++);
 
-	std::cout << cities[generation[i][0]].name;
+	std::cout << cities[solution[0]].name;
 	for (int j = 1; j < size; j++) {
-		std::cout << " -> " << cities[generation[i][j]].name;
+		std::cout << " -> " << cities[solution[j]].name;
 	}
 	std::cout << std::endl;
 }
