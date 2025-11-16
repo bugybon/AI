@@ -1,11 +1,11 @@
 #include <iostream>
 #include <string>
 
-#define ITER_COUNT 3
+#define ITER_COUNT 10
 #define POOL_SIZE 10
 #define MAX_CITY_COUNT 100
 
-int size = 0;
+short size = 0;
 struct City {
 	std::string name;
 	float x, y;
@@ -13,26 +13,93 @@ struct City {
 
 City cities[MAX_CITY_COUNT];
 short generation[POOL_SIZE][MAX_CITY_COUNT], parents[POOL_SIZE][MAX_CITY_COUNT];
-int distance[POOL_SIZE], fitness[POOL_SIZE];
+float distance[POOL_SIZE];
+int fitness[POOL_SIZE];
 
-void init(const int &iter) {};
-int eval(const int &iter) {};
-void selectParents(const int& iter) {};
-void reproduction(short parents[POOL_SIZE][MAX_CITY_COUNT], short current[POOL_SIZE][MAX_CITY_COUNT]) {};
-void mutate(const int& iter) {};
+float distanceBetween(const int& first_index, const int& second_index) {
+	return std::abs((cities[first_index].x - cities[second_index].x) * (cities[first_index].y - cities[second_index].y));
+};
+
+void promoteToParent(const int& parent, const int& chosen) {
+	for (short i = 0; i < size; i++)
+		parents[parent][i] = generation[chosen][i];
+}
+
+void init() {
+	short sequence[MAX_CITY_COUNT];
+	short current;
+	for (short i = 0; i < size; i++) {
+		sequence[i] = i;
+	}
+
+	for (short pool = 0; pool < POOL_SIZE; pool++) {
+		for (short i = 0; i < size; i++) {
+			current = rand() % (size - i);
+			generation[pool][i] = sequence[current];
+			std::swap(sequence[current], sequence[i]);
+		}
+	}
+};
+
+int eval() {
+	for (short pool = 0; pool < POOL_SIZE; pool++)
+		distance[pool] = 0;
+
+	for (short pool = 0; pool < POOL_SIZE; pool++) {
+		for (short i = 0; i < size - 1; i++) {
+			distance[pool] += distanceBetween(generation[pool][i], generation[pool][i + 1]);
+		}
+	}
+	float max = distance[0];
+	for(short pool = 1;pool < POOL_SIZE; pool++)
+		max = std::max(distance[pool] + 1, max);
+
+	for (short pool = 0; pool < POOL_SIZE; pool++) 
+		fitness[pool] = std::ceil(max - distance[pool]);
+};
+
+void selectParents() {
+	int sum_fitness = 0, prefix_sum, current;
+	short candidate;
+
+	for (short pool = 0; pool < POOL_SIZE; pool++)
+		sum_fitness += fitness[pool];
+
+	for (short pool = 0; pool < POOL_SIZE;pool++) {
+		current = rand() % sum_fitness;
+		prefix_sum = 0;
+		candidate = 0;
+
+		for (; prefix_sum < current; candidate++) {
+			prefix_sum += fitness[candidate];
+		}
+
+		candidate = std::max(0, candidate - 1);
+		promoteToParent(pool, candidate);
+	}
+};
+
+void reproduction() {
+
+};
+
+void mutate() {
+
+};
+
 
 int geneticAlgorithm(){
 	int count = 0;
-	init(count);
-	int min_distance = eval(count);
+	init();
+	int min_distance = eval();
 
 	for (int i = 0; i < ITER_COUNT; i++) {
-		selectParents(count);
-		reproduction(parents, generation);
+		selectParents();
+		reproduction();
 		
 		count++;
-		mutate(count);
-		min_distance = std::min(min_distance,eval(count));
+		mutate();
+		min_distance = std::min(min_distance,eval());
 		std::cout << min_distance;
 	}
 
@@ -61,6 +128,7 @@ void printCities(const float &wanted_value) {
 }
 
 int main() {
+	srand(time(0));
 	std::string input;
 	float result;
 	std::getline(std::cin, input);
