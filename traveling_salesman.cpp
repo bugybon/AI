@@ -1,25 +1,26 @@
 #include <iostream>
 #include <string>
+#include <iomanip>
 
-#define ITER_COUNT 10000
-#define POOL_SIZE 20
+#define ITER_COUNT 2000
+#define POOL_SIZE 100
 #define MAX_CITY_COUNT 100
-#define TOTAL_CHANCE 6
+#define TOTAL_CHANCE 5
 #define SUCCESS_CUTOFF 1
 
 short size = 0;
 struct City {
 	std::string name;
-	float x, y;
+	double x, y;
 };
 
 City cities[MAX_CITY_COUNT];
-short generation[POOL_SIZE][MAX_CITY_COUNT], parents[POOL_SIZE][MAX_CITY_COUNT], solution[MAX_CITY_COUNT];
-bool used[POOL_SIZE];
-float distance[POOL_SIZE];
+short generation[POOL_SIZE][MAX_CITY_COUNT], parents[POOL_SIZE][MAX_CITY_COUNT], solution[2][MAX_CITY_COUNT];
+bool used[MAX_CITY_COUNT];
+double distance[POOL_SIZE];
 int fitness[POOL_SIZE];
 
-float distanceBetween(const int& first_index, const int& second_index) {
+double distanceBetween(const int& first_index, const int& second_index) {
 	return std::sqrt((cities[first_index].x - cities[second_index].x)* (cities[first_index].x - cities[second_index].x)+
 		(cities[first_index].y - cities[second_index].y)*(cities[first_index].y - cities[second_index].y));
 };
@@ -29,12 +30,15 @@ void promoteToParent(const int& parent, const int& chosen) {
 		parents[parent][i] = generation[chosen][i];
 }
 
-void findWanted(const int& value) {
+void findWanted(const double& value) {
 	for (int pool = 0; pool < POOL_SIZE; pool++) {
 		if (value != distance[pool]) continue;
 
 		for (int i = 0; i < size; i++) {
-			solution[i] = generation[pool][i];
+			solution[1][i] = solution[0][i];
+			solution[0][i] = generation[pool][i];
+			generation[1][i] = solution[1][i];
+			generation[0][i] = solution[0][i];
 		}
 		return;
 	}
@@ -64,6 +68,7 @@ void init() {
 	short current;
 	for (short i = 0; i < size; i++) {
 		sequence[i] = i;
+		solution[0][i] = i; //making a direct copy into generation so should be initialized
 	}
 
 	for (short pool = 0; pool < POOL_SIZE; pool++) {
@@ -75,7 +80,7 @@ void init() {
 	}
 };
 
-int eval() {
+double eval() {
 	for (short pool = 0; pool < POOL_SIZE; pool++)
 		distance[pool] = 0;
 
@@ -84,15 +89,15 @@ int eval() {
 			distance[pool] += distanceBetween(generation[pool][i], generation[pool][i + 1]);
 		}
 	}
-	float max = distance[0];
+	double max = distance[0];
 	for(short pool = 1;pool < POOL_SIZE; pool++)
 		max = std::max(distance[pool] + 1, max);
 
 	fitness[0] = std::ceil(max - distance[0]);
-	int res = distance[0];
+	double res = distance[0];
 	for (short pool = 1; pool < POOL_SIZE; pool++) {
 		fitness[pool] = std::ceil(max - distance[pool]);
-		if (max - res < fitness[pool]) {
+		if ( res > distance[pool]) {
 			res = distance[pool];
 		}
 	}
@@ -101,7 +106,7 @@ int eval() {
 
 void selectParents() {
 	int sum_fitness = 0, prefix_sum, current;
-	short candidate;
+	int candidate, last_candidate;
 
 	for (short pool = 0; pool < POOL_SIZE; pool++)
 		sum_fitness += fitness[pool];
@@ -117,14 +122,15 @@ void selectParents() {
 
 		candidate = std::max(0, candidate - 1);
 		promoteToParent(pool, candidate);
+		last_candidate = candidate;
 	}
 };
 
 void reproduction() {
 	short start, end;
-	for (int i = 0; i < POOL_SIZE / 2; i++) {
+	for (int i = 2; i < (POOL_SIZE-2) / 2; i++) {
 		start = rand() % size;
-		end = (start + 1) == size ? (start + 1) : (start + 1 + rand() % (size - start - 1));
+		end = ((start + 1) == size) ? (start + 1) : (start + 1 + rand() % (size - start - 1));
 		crossover(i, i + 1, start, end);
 		crossover(i + 1, i, start, end);
 	}
@@ -132,29 +138,29 @@ void reproduction() {
 
 void mutate() {
 	short attampt_mutation, first, second;
-	for (int i = 0; i < POOL_SIZE; i++) {
+	for (int i = 2; i < POOL_SIZE; i++) {
 		attampt_mutation = rand() % TOTAL_CHANCE;
 
 		if (attampt_mutation > SUCCESS_CUTOFF) continue;
 
 		first = rand() % size;
-		second = rand() % size;
-		std::swap(generation[i][first], generation[i][second]);
+		second = first + rand() % (size - first);
+		for (int j = first; j < (second + first) / 2; j++)
+			std::swap(generation[i][j], generation[i][second - j]);
 	}
 };
 
 
-int geneticAlgorithm(){
-	int count = 0, temp;
+double geneticAlgorithm(){
 	init();
-	int min_distance = eval();
+	double min_distance = eval(), temp;
 	findWanted(min_distance);
 
-	for (int i = 0; i < ITER_COUNT; i++) {
+	std::cout << std::setprecision(16) << min_distance << std::endl;
+	for (int i = 0; i <= ITER_COUNT; i++) {
 		selectParents();
 		reproduction();
 		
-		count++;
 		mutate();
 		temp = eval();
 		if(min_distance > temp){
@@ -162,7 +168,7 @@ int geneticAlgorithm(){
 			findWanted(min_distance);
 		}
 		//min_distance = std::min(min_distance,eval());
-		std::cout << min_distance << std::endl;
+		if (i % 50 == 0) std::cout << std::setprecision(16) << min_distance << std::endl;
 	}
 
 	return min_distance;
@@ -178,13 +184,13 @@ bool hasLetter( std::string& string) {
 	return false;
 }
 
-void printCities(const float &wanted_value) {
+void printCities(const double &wanted_value) {
 	//int i = 0;
 	//for (; distance[i] != wanted_value; i++);
 
-	std::cout << cities[solution[0]].name;
+	std::cout << cities[solution[0][0]].name;
 	for (int j = 1; j < size; j++) {
-		std::cout << " -> " << cities[solution[j]].name;
+		std::cout << " -> " << cities[solution[0][j]].name;
 	}
 	std::cout << std::endl;
 }
@@ -192,7 +198,7 @@ void printCities(const float &wanted_value) {
 int main() {
 	srand(time(0));
 	std::string input;
-	float result;
+	double result;
 	std::getline(std::cin, input);
 	if (hasLetter(input)) {
 		std::cin >> size;
@@ -204,17 +210,17 @@ int main() {
 
 		std::cout << std::endl;
 		printCities(result);
-		std::cout << result << std::endl;
+		std::cout << std::setprecision(16) << result << std::endl;
 	} else {
 		size = stoi(input);
 		for (int i = 0; i < size; i++) {
-			cities[i].x = (float)rand() / (float)rand();
-			cities[i].y = (float)rand() / (float)rand();
+			cities[i].x = (double)rand() / (double)rand();
+			cities[i].y = (double)rand() / (double)rand();
 		}
 
 		result = geneticAlgorithm();
 
-		std::cout << std::endl << result << std::endl;
+		std::cout << std::endl << std::setprecision(16) << result << std::endl;
 	}
 
 	return 0;
