@@ -2,8 +2,10 @@
 #include <string>
 
 #define ITER_COUNT 10
-#define POOL_SIZE 10
+#define POOL_SIZE 20
 #define MAX_CITY_COUNT 100
+#define TOTAL_CHANCE 6
+#define SUCCESS_CUTOFF 1
 
 short size = 0;
 struct City {
@@ -13,6 +15,7 @@ struct City {
 
 City cities[MAX_CITY_COUNT];
 short generation[POOL_SIZE][MAX_CITY_COUNT], parents[POOL_SIZE][MAX_CITY_COUNT];
+bool used[POOL_SIZE];
 float distance[POOL_SIZE];
 int fitness[POOL_SIZE];
 
@@ -23,6 +26,25 @@ float distanceBetween(const int& first_index, const int& second_index) {
 void promoteToParent(const int& parent, const int& chosen) {
 	for (short i = 0; i < size; i++)
 		parents[parent][i] = generation[chosen][i];
+}
+
+void crossover(const int& adopter, const int& giver, const short& start, const short& end) {
+	for (int i = 0; i < size; i++)
+		used[i] = false;
+
+	for (int i = start; i < end; i++) {
+		used[parents[adopter][i]] = true;
+		generation[adopter][i] = parents[adopter][i];
+	}
+
+	int adopted = 1;
+	for (int i = 1; i <= size && adopted <= size - (end - start); i++) {
+		if (used[parents[giver][start + i]]) continue;
+
+		generation[adopter][(start + adopted) % size] = parents[giver][start + i];
+		used[parents[giver][start + i]] = true;
+		adopted++;
+	}
 }
 
 void init() {
@@ -80,11 +102,26 @@ void selectParents() {
 };
 
 void reproduction() {
-
+	short start, end;
+	for (int i = 0; i < POOL_SIZE / 2; i++) {
+		start = rand() % size;
+		end = start + 1 + rand() % (size - start - 1);
+		crossover(i, i + 1, start, end);
+		crossover(i + 1, i, start, end);
+	}
 };
 
 void mutate() {
+	short attampt_mutation, first, second;
+	for (int i = 0; i < POOL_SIZE; i++) {
+		attampt_mutation = rand() % TOTAL_CHANCE;
 
+		if (attampt_mutation > SUCCESS_CUTOFF) continue;
+
+		first = rand() % size;
+		second = rand() % size;
+		std::swap(generation[i][first], generation[i][second]);
+	}
 };
 
 
@@ -146,7 +183,8 @@ int main() {
 	} else {
 		size = stoi(input);
 		for (int i = 0; i < size; i++) {
-			std::cin >> cities[i].name >> cities[i].x >> cities[i].y;
+			cities[i].x = (float)rand() / (float)rand();
+			cities[i].y = (float)rand() / (float)rand();
 		}
 
 		result = geneticAlgorithm();
