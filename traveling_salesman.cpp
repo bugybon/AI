@@ -68,7 +68,7 @@ void init() {
 	short current;
 	for (short i = 0; i < size; i++) {
 		sequence[i] = i;
-		solution[0][i] = i; //making a direct copy into generation so should be initialized
+		solution[0][i] = i; //making a direct copy into generation so should be initialized, ie it's a dummy solution
 	}
 
 	for (short pool = 0; pool < POOL_SIZE; pool++) {
