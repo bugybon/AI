@@ -7,10 +7,16 @@ enum Tile {
 	O = -1
 };
 
+struct Move {
+	int value;
+	int row;
+	int col;
+};
+
 int valueArray[9];
 
-int maxValue(Tile* game, int& alpha, int& betta, const int& depth, const Tile& whose_turn, const bool& isFirstIter);
-int minValue(Tile* game, int& alpha, int& betta, const int& depth, const Tile& whose_turn, const bool& isFirstIter);
+Move maxValue(Tile* game, const int& alpha, const int& betta, const int& depth, const Tile& whose_turn, const bool& isFirstIter);
+Move minValue(Tile* game, const int& alpha, const int& betta, const int& depth, const Tile& whose_turn, const bool& isFirstIter);
 
 bool isTerminalState(Tile* game) {
 	for (int i = 0; i < 3; i++) {
@@ -20,7 +26,7 @@ bool isTerminalState(Tile* game) {
 	}
 
 	if ((game[0] != Tile::_ && game[0] == game[4] && game[0] == game[8]) ||
-		(game[3] != Tile::_ && game[2] == game[4] && game[2] == game[6]))
+		(game[2] != Tile::_ && game[2] == game[4] && game[2] == game[6]))
 		return true;
 
 	for(int i = 0; i < 9; i++)
@@ -31,21 +37,22 @@ bool isTerminalState(Tile* game) {
 
 int terminalStateValue(Tile* game, const int& depth) {
 	for (int i = 0; i < 3; i++) {
-		if (game[i * 3] != _ && game[i * 3] == game[i * 3 + 1] && game[i * 3] == game[i * 3 + 2])
+		if (game[i * 3] != Tile::_ && game[i * 3] == game[i * 3 + 1] && game[i * 3] == game[i * 3 + 2])
 			return (game[i * 3] == Tile::O) ? (depth - 10) : (10 - depth);
-		if (game[i] != _ && game[i] == game[3 + i] && game[i] == game[6 + i])
+		if (game[i] != Tile::_ && game[i] == game[3 + i] && game[i] == game[6 + i])
 			return (game[i] == Tile::O) ? (depth - 10) : (10 - depth);
 	}
 
-	if ((game[0] != _ && game[0] == game[4] && game[0] == game[8]) ||
-		(game[3] != _ && game[2] == game[4] && game[2] == game[6]))
+	if ((game[0] != Tile::_ && game[0] == game[4] && game[0] == game[8]) ||
+		(game[2] != Tile::_ && game[2] == game[4] && game[2] == game[6]))
 		return (game[4] == Tile::O) ? (depth - 10) : (10 - depth);
 
 	return 0;
 }
 
-void judge(Tile game[], const Tile& whose_turn, const int& depth) {
-	int value, alpha = INT8_MIN, betta = INT8_MAX;
+void judge(Tile* game, const Tile& whose_turn, const int& depth) {
+	Move value;
+	int alpha = INT8_MIN, betta = INT8_MAX;
 
 	if (whose_turn == X) {
 		value = maxValue(game, alpha, betta, depth, whose_turn, true);
@@ -54,56 +61,66 @@ void judge(Tile game[], const Tile& whose_turn, const int& depth) {
 		value = minValue(game, alpha, betta, depth, whose_turn, true);
 
 	}
-	
-
-	for (int i = 0; i < 9; i++) {
-		if (valueArray[i] == value)
-			std::cout << i / 3 + 1 << " " << i % 3 + 1 << std::endl;
-	}
+	//std::cout << "Solution is with value = " << value.value << std::endl;
+	if (value.row == -1 && value.col == -1)
+		std::cout << -1 << std::endl;
+	else
+		std::cout << value.row << " " << value.col << std::endl;
 }
 
-int maxValue(Tile* game, int& alpha, int& betta, const int& depth, const Tile& whose_turn, const bool& isFirstIter) {
+Move maxValue(Tile* game, const int& alpha, const int& betta, const int& depth, const Tile& whose_turn, const bool& isFirstIter) {
 	if (isTerminalState(game)) 
-		return terminalStateValue(game, depth);
+		return { terminalStateValue(game, depth), -1, -1 };
 
-	int value = INT8_MIN;
+	Move value;
+	value.value = INT8_MIN;
+	int next_alpha = alpha, old_value;
 
 	for (int i = 0; i < 9; i++) {
 		if (game[i] != Tile::_)
 			continue;
-
 		game[i] = whose_turn;
-		value = std::max(value, minValue(game, alpha, betta, depth + 1, (whose_turn == Tile::X) ? Tile::O : Tile::X, false));
+		old_value = value.value;
+		value.value = std::max(value.value, minValue(game, next_alpha, betta, depth + 1, (whose_turn == Tile::X) ? Tile::O : Tile::X, false).value);
+		if (isFirstIter && value.value != old_value) {
+			value.row = 1 + i / 3;
+			value.col = 1 + i % 3;
+		}
 		game[i] = Tile::_;
-		if (value >= betta) {
-			if (isFirstIter)
-				valueArray[i] = value;
+		if (value.value >= betta) {
 			return value;
 		}
-		alpha = std::max(alpha, value);
+		next_alpha = std::max(next_alpha, value.value);
 	}
 
 	return value;
 }
 
-int minValue(Tile* game, int& alpha, int& betta, const int& depth, const Tile& whose_turn, const bool& isFirstIter) {
+Move minValue(Tile* game, const int& alpha, const int& betta, const int& depth, const Tile& whose_turn, const bool& isFirstIter) {
 	if (isTerminalState(game))
-		return terminalStateValue(game, depth);
+		return { terminalStateValue(game, depth), -1, -1 };
 
-	int value = INT8_MAX;
+	Move value;
+	value.value = INT8_MAX;
+	int next_betta = betta, old_value;
 
 	for (int i = 0; i < 9; i++) {
 		if (game[i] != Tile::_)
 			continue;
 
 		game[i] = whose_turn;
-		value = std::min(value, maxValue(game, alpha, betta, depth + 1, (whose_turn == Tile::X) ? Tile::O : Tile::X,false));
+		old_value = value.value;
+		value.value = std::min(value.value, maxValue(game, alpha, next_betta, depth + 1, (whose_turn == Tile::X) ? Tile::O : Tile::X,false).value);
+		if (isFirstIter && value.value != old_value) {
+			value.row = 1 + i / 3;
+			value.col = 1 + i % 3;
+		}
 		game[i] = Tile::_;
-		if (value <= alpha) {
-			if (isFirstIter) valueArray[i] = value;
+
+		if (value.value <= alpha) {
 			return value;
 		}
-		betta = std::min(betta, value);
+		next_betta = std::min(next_betta, value.value);
 	}
 
 	return value;
