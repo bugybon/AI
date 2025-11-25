@@ -13,10 +13,25 @@ struct Move {
 	int col;
 };
 
+struct Coords {
+	int row;
+	int col;
+};
+
 int valueArray[9];
 
 Move maxValue(Tile* game, const int& alpha, const int& betta, const int& depth, const Tile& whose_turn, const bool& isFirstIter);
 Move minValue(Tile* game, const int& alpha, const int& betta, const int& depth, const Tile& whose_turn, const bool& isFirstIter);
+
+void printState(Tile* game) {
+	std::cout << "+---+---+---+" << std::endl;
+	for (int row = 0; row < 3; row++) {
+		for (int col = 0; col < 3; col++) {
+			std::cout << "| " << ((game[row * 3 + col] == Tile::X) ? "X" : ((game[row*3 + col] == Tile::O) ? "O" : "_")) << " ";
+		}
+		std::cout << "|" << std::endl << "+---+---+---+" << std::endl;
+	}
+}
 
 bool isTerminalState(Tile* game) {
 	for (int i = 0; i < 3; i++) {
@@ -48,24 +63,6 @@ int terminalStateValue(Tile* game, const int& depth) {
 		return (game[4] == Tile::O) ? (depth - 10) : (10 - depth);
 
 	return 0;
-}
-
-void judge(Tile* game, const Tile& whose_turn, const int& depth) {
-	Move value;
-	int alpha = INT8_MIN, betta = INT8_MAX;
-
-	if (whose_turn == X) {
-		value = maxValue(game, alpha, betta, depth, whose_turn, true);
-	}
-	else {
-		value = minValue(game, alpha, betta, depth, whose_turn, true);
-
-	}
-	//std::cout << "Solution is with value = " << value.value << std::endl;
-	if (value.row == -1 && value.col == -1)
-		std::cout << -1 << std::endl;
-	else
-		std::cout << value.row << " " << value.col << std::endl;
 }
 
 Move maxValue(Tile* game, const int& alpha, const int& betta, const int& depth, const Tile& whose_turn, const bool& isFirstIter) {
@@ -126,6 +123,56 @@ Move minValue(Tile* game, const int& alpha, const int& betta, const int& depth, 
 	return value;
 }
 
+Coords judge(Tile* game, const Tile& whose_turn, const int& depth) {
+	Move value;
+	int alpha = INT8_MIN, betta = INT8_MAX;
+
+	if (whose_turn == X) {
+		value = maxValue(game, alpha, betta, depth, whose_turn, true);
+	}
+	else {
+		value = minValue(game, alpha, betta, depth, whose_turn, true);
+
+	}
+	//std::cout << "Solution is with value = " << value.value << std::endl;
+	return { value.row, value.col };
+}
+
+void gameType(Tile* game, const Tile& whose_turn, const Tile& human_turn) {
+	int depth = 0, rowInput, colInput;
+
+	for (int i = 0; i < 9; i++)
+		depth += (game[i] != _) ? 1 : 0;
+
+	Coords bot;
+	Tile current_turn = whose_turn;
+	while (!isTerminalState(game)) {
+		if (current_turn == human_turn) {
+			do {
+				std::cin >> rowInput >> colInput;
+			} while (game[(rowInput - 1) * 3 + colInput - 1] != Tile::_);
+			game[(rowInput - 1) * 3 + colInput - 1] = current_turn;
+		}
+		else {
+			bot = judge(game, current_turn, depth);
+			std::cout << bot.row << " " << bot.col << std::endl;
+			game[(bot.row - 1) * 3 + bot.col - 1] = current_turn;
+		}
+
+		printState(game);
+		depth++;
+		current_turn = (current_turn == Tile::X) ? Tile::O : Tile::X;
+	}
+
+	int result = terminalStateValue(game, depth);
+	if (result < 0)
+		std::cout << "WINNER: O" << std::endl;
+	else if (result > 0)
+		std::cout << "WINNER: X" << std::endl;
+	else
+		std::cout << "DRAW" << std::endl;
+}
+
 Tile translateCharToTile(const char& ch) {
 	switch (ch) {
 	case 'X':
@@ -157,49 +204,54 @@ std::string translateInputToState(const std::string& input) {
 	return tempState;
 }
 
-void printState(Tile* game) {
-	std::cout << "+---+---+---+" << std::endl;
-	for (int row = 0; row < 3; row++) {
-		for (int col = 0; col < 3; col++) {
-			std::cout << "| " << game[row * 3 + col] << " ";
-		}
-		std::cout << "|" << std::endl << "+---+---+---+" << std::endl;
-	}
-}
-
 int main() {
-	std::string inputType, inputTurn, inputState, input;
+	std::string inputType, inputTurn, inputState,inputHumanTurn, input;
 	Tile game[9], buffer[9];
 	int depth = 0;
+	Coords result;
 	
 	std::cin >> inputType;
 	std::getline(std::cin, inputTurn); //clear the remaining line from cin >>
-	std::getline(std::cin, inputTurn);
-	for (int i = 0; i < 7; i++) {
-		std::getline(std::cin, input);
-		inputState += translateInputToState(input);
-	}
-
-	if (inputState.size() != 9) std::cout << "Wrong state input";
-
-	translateStateToGame(inputState, game);
-	translateStateToGame(inputState, buffer);
 
 	for (int i = 0; i < 9; i++)
 		depth += (game[i] != _) ? 1 : 0;
 
 	if(inputType == "JUDGE"){
-		if (inputTurn[5] == 'X') {
-			judge(buffer, X, depth);
-		} else if (inputTurn[5] == 'O') {
-			judge(buffer, O, depth);
+		std::getline(std::cin, inputTurn);
+		for (int i = 0; i < 7; i++) {
+			std::getline(std::cin, input);
+			inputState += translateInputToState(input);
 		}
-		else {
-			std::cout << "Not a possible turn";
-		}
+
+		if (inputState.size() != 9) std::cout << "Wrong state input";
+
+		translateStateToGame(inputState, game);
+		translateStateToGame(inputState, buffer);
+
+		for (int i = 0; i < 9; i++)
+			depth += (game[i] != _) ? 1 : 0;
+
+		result = judge(buffer, (inputTurn[5] == 'X') ? Tile::X : Tile::O, depth);
+
+		if (result.row == -1 && result.col == -1)
+			std::cout << -1 << std::endl;
+		else
+			std::cout << result.row << " " << result.col << std::endl;
 	}
 	else if (inputType == "GAME") {
-		// ...
+		std::getline(std::cin, inputTurn);
+		std::getline(std::cin, inputHumanTurn);
+		for (int i = 0; i < 7; i++) {
+			std::getline(std::cin, input);
+			inputState += translateInputToState(input);
+		}
+
+		if (inputState.size() != 9) std::cout << "Wrong state input";
+
+		translateStateToGame(inputState, game);
+		translateStateToGame(inputState, buffer);
+
+		gameType(buffer, (inputTurn[6] == 'X') ? Tile::X : Tile::O, (inputHumanTurn[6] == 'X') ? Tile::X : Tile::O);
 	}
 	else {
 		std::cout << "Not a game type";
