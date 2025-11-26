@@ -23,14 +23,26 @@ int valueArray[9];
 Move maxValue(Tile* game, const int& alpha, const int& betta, const int& depth, const Tile& whose_turn, const bool& isFirstIter);
 Move minValue(Tile* game, const int& alpha, const int& betta, const int& depth, const Tile& whose_turn, const bool& isFirstIter);
 
+std::string printTile(const Tile& tile) {
+	if (tile == Tile::X)	return "X";
+	else if (tile == Tile::O) return "O";
+	else return "_";
+}
+
 void printState(Tile* game) {
 	std::cout << "+---+---+---+" << std::endl;
 	for (int row = 0; row < 3; row++) {
 		for (int col = 0; col < 3; col++) {
-			std::cout << "| " << ((game[row * 3 + col] == Tile::X) ? "X" : ((game[row*3 + col] == Tile::O) ? "O" : "_")) << " ";
+			std::cout << "| " << printTile(game[row * 3 + col]) << " ";
 		}
 		std::cout << "|" << std::endl << "+---+---+---+" << std::endl;
 	}
+}
+
+Tile reverseTile(const Tile& tile) {
+	if (tile == Tile::O) return Tile::X;
+	else if (tile == Tile::X) return Tile::O;
+	else return Tile::_;
 }
 
 bool isTerminalState(Tile* game) {
@@ -69,58 +81,60 @@ Move maxValue(Tile* game, const int& alpha, const int& betta, const int& depth, 
 	if (isTerminalState(game)) 
 		return { terminalStateValue(game, depth), -1, -1 };
 
-	Move value;
-	value.value = INT8_MIN;
-	int next_alpha = alpha, old_value;
+	int value = INT8_MIN, row = -1, col = -1, next_alpha = alpha, candidate_value;
 
 	for (int i = 0; i < 9; i++) {
 		if (game[i] != Tile::_)
 			continue;
 		game[i] = whose_turn;
-		old_value = value.value;
-		value.value = std::max(value.value, minValue(game, next_alpha, betta, depth + 1, (whose_turn == Tile::X) ? Tile::O : Tile::X, false).value);
-		if (isFirstIter && value.value != old_value) {
-			value.row = 1 + i / 3;
-			value.col = 1 + i % 3;
+
+		candidate_value = minValue(game, next_alpha, betta, depth + 1, reverseTile(whose_turn), false).value;
+		if(value < candidate_value) {
+			if (isFirstIter) {
+				row = 1 + i / 3;
+				col = 1 + i % 3;
+			}
+			value = candidate_value;
 		}
 		game[i] = Tile::_;
-		if (value.value >= betta) {
-			return value;
-		}
-		next_alpha = std::max(next_alpha, value.value);
+
+		if (value >= betta)
+			return { value, row, col };
+
+		next_alpha = std::max(next_alpha, value);
 	}
 
-	return value;
+	return { value, row, col };
 }
 
 Move minValue(Tile* game, const int& alpha, const int& betta, const int& depth, const Tile& whose_turn, const bool& isFirstIter) {
 	if (isTerminalState(game))
 		return { terminalStateValue(game, depth), -1, -1 };
 
-	Move value;
-	value.value = INT8_MAX;
-	int next_betta = betta, old_value;
+	int col = -1, row = -1,value= INT8_MAX,next_betta = betta, candidate_value;
 
 	for (int i = 0; i < 9; i++) {
 		if (game[i] != Tile::_)
 			continue;
 
 		game[i] = whose_turn;
-		old_value = value.value;
-		value.value = std::min(value.value, maxValue(game, alpha, next_betta, depth + 1, (whose_turn == Tile::X) ? Tile::O : Tile::X,false).value);
-		if (isFirstIter && value.value != old_value) {
-			value.row = 1 + i / 3;
-			value.col = 1 + i % 3;
-		}
+		candidate_value = maxValue(game, alpha, next_betta, depth + 1, reverseTile(whose_turn), false).value;
+		if (candidate_value < value){
+			if (isFirstIter) {
+				row = 1 + i / 3;
+				col = 1 + i % 3;
+			}
+			value = candidate_value;
+		}	
 		game[i] = Tile::_;
 
-		if (value.value <= alpha) {
-			return value;
-		}
-		next_betta = std::min(next_betta, value.value);
+		if (value <= alpha) 
+			return { value, row, col };
+
+		next_betta = std::min(next_betta, value);
 	}
 
-	return value;
+	return { value, row, col};
 }
 
 Coords judge(Tile* game, const Tile& whose_turn, const int& depth) {
@@ -161,7 +175,7 @@ void gameType(Tile* game, const Tile& whose_turn, const Tile& human_turn) {
 
 		printState(game);
 		depth++;
-		current_turn = (current_turn == Tile::X) ? Tile::O : Tile::X;
+		current_turn = reverseTile(current_turn);
 	}
 
 	int result = terminalStateValue(game, depth);
@@ -176,14 +190,14 @@ void gameType(Tile* game, const Tile& whose_turn, const Tile& human_turn) {
 Tile translateCharToTile(const char& ch) {
 	switch (ch) {
 	case 'X':
-		return X;
+		return Tile::X;
 	case 'O':
-		return O;
+		return Tile::O;
 	case '_':
-		return _;
+		return Tile::_;
 	default:
 		std::cout << "Char not a tile";
-		return _;
+		return Tile::_;
 	}
 }
 
@@ -213,9 +227,6 @@ int main() {
 	std::cin >> inputType;
 	std::getline(std::cin, inputTurn); //clear the remaining line from cin >>
 
-	for (int i = 0; i < 9; i++)
-		depth += (game[i] != _) ? 1 : 0;
-
 	if(inputType == "JUDGE"){
 		std::getline(std::cin, inputTurn);
 		for (int i = 0; i < 7; i++) {
@@ -231,7 +242,7 @@ int main() {
 		for (int i = 0; i < 9; i++)
 			depth += (game[i] != _) ? 1 : 0;
 
-		result = judge(buffer, (inputTurn[5] == 'X') ? Tile::X : Tile::O, depth);
+		result = judge(buffer, translateCharToTile(inputTurn[5]), depth);
 
 		if (result.row == -1 && result.col == -1)
 			std::cout << -1 << std::endl;
@@ -251,7 +262,7 @@ int main() {
 		translateStateToGame(inputState, game);
 		translateStateToGame(inputState, buffer);
 
-		gameType(buffer, (inputTurn[6] == 'X') ? Tile::X : Tile::O, (inputHumanTurn[6] == 'X') ? Tile::X : Tile::O);
+		gameType(buffer, translateCharToTile(inputTurn[6]), translateCharToTile(inputHumanTurn[6]));
 	}
 	else {
 		std::cout << "Not a game type";
