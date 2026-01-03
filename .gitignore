@@ -1,7 +1,9 @@
 *.exe
 a.out
+*.txt
 
 myenv/
 .judge/
 .vscode/
 .vs/
+Datasets/
